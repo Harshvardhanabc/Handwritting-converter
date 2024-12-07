@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Text to Handwriting</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <style>
+        #preview-container {
+            width: 100%;
+            height: 100vh;
+            overflow-y: scroll;
+            border: 1px solid gray;
+            background: #f8f8f8;
+        }
+
+        .a4-page {
+            width: 210mm;
+            height: 297mm;
+            margin: 0 auto;
+            background: white;
+            border: 1px solid #ccc;
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
+            position: relative;
+        }
+
+        .a4-page textarea {
+            width: 100%;
+            height: 100%;
+            padding: 20mm;
+            border: none;
+            outline: none;
+            resize: none;
+            background: transparent;
+            overflow: hidden;
+            font-family: 'Arial', sans-serif;
+        }
+
+        .effect-shadow {
+            text-shadow: 2px 2px 5px rgba(0, 0, 0, 0.3);
+        }
+
+        .effect-scanner {
+            filter: grayscale(100%) contrast(200%) blur(2px);
+        }
+
+        .hidden {
+            display: none;
+        }
+        .watermark {
+            position: fixed;
+            bottom: 10px;
+            right: 10px;
+            font-size: 14px;
+            color: #ffffff;
+            opacity: 0.7;
+            pointer-events: none; /* Prevent the text from interfering with clicks */
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-white font-sans">
+    <div class="container mx-auto p-4">
+        <h1 class="text-3xl font-bold mb-4">Text to Handwriting</h1>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <!-- Input Section -->
+            <div id="preview-container">
+                <div class="a4-page" id="page-template">
+                    <textarea class="text-box" placeholder="Type text here"></textarea>
+                </div>
+            </div>
+
+            <!-- Customization Section -->
+            <div>
+                <h2 class="text-xl font-semibold mb-2">Customizations</h2>
+                <p class="text-gray-400 mb-4">Changes apply live to the preview</p>
+
+                <!-- Handwriting Font -->
+                <div class="mb-4">
+                    <label for="handwriting-font" class="block font-semibold mb-2">Handwriting Font</label>
+                    <select id="handwriting-font" class="p-2 w-full bg-gray-800 text-white border border-gray-600 rounded">
+                        <option value="'Homemade Apple', cursive">Homemade Apple</option>
+                        <option value="'Kruti Dev', sans-serif">Kruti Dev (Hindi)</option>
+                        <option value="'Caveat', cursive">Caveat</option>
+                        <option value="'Liu Jian Mao Cao', cursive">Liu Jian Mao Cao</option>
+                    </select>
+                </div>
+
+                <!-- Page & Text Options -->
+                <div class="mb-4">
+                    <h3 class="text-lg font-semibold mb-2">Page & Text Options</h3>
+                    <div class="grid grid-cols-2 gap-2">
+                        <div class="flex items-center space-x-2">
+                            <label for="font-size" class="w-1/2">Font Size</label>
+                            <input type="number" id="font-size" class="w-1/2 p-2 bg-gray-800 text-white border border-gray-600 rounded" value="16">
+                            <span>px</span>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <label for="ink-color" class="w-1/2">Ink Color</label>
+                            <input type="color" id="ink-color" class="w-1/2 p-2 bg-gray-800 text-white border border-gray-600 rounded" value="#000000">
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <label for="page-size" class="w-1/2">Page Size</label>
+                            <select id="page-size" class="w-1/2 p-2 bg-gray-800 text-white border border-gray-600 rounded">
+                                <option value="A4">A4 (210mm x 297mm)</option>
+                                <option value="Letter">Letter (216mm x 279mm)</option>
+                                <option value="Legal">Legal (216mm x 356mm)</option>
+                            </select>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <label for="effects" class="w-1/2">Effects</label>
+                            <select id="effects" class="w-1/2 p-2 bg-gray-800 text-white border border-gray-600 rounded">
+                                <option value="none">No effect</option>
+                                <option value="shadow">Shadows</option>
+                                <option value="scanner">Scanner</option>
+                            </select>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <label for="resolution" class="w-1/2">Resolution</label>
+                            <select id="resolution" class="w-1/2 p-2 bg-gray-800 text-white border border-gray-600 rounded">
+                                <option value="very-low">Very Low</option>
+                                <option value="low">Low</option>
+                                <option value="normal" selected>Normal</option>
+                                <option value="high">High</option>
+                                <option value="very-high">Very High</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Spacing Options -->
+                <div class="mb-4">
+                    <h3 class="text-lg font-semibold mb-2">Spacing Options</h3>
+                    <div class="grid grid-cols-2 gap-2">
+                        <div class="flex items-center space-x-2">
+                            <label for="vertical-position" class="w-1/2">Vertical Position</label>
+                            <input type="number" id="vertical-position" class="w-1/2 p-2 bg-gray-800 text-white border border-gray-600 rounded" value="5">
+                            <span>px</span>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <label for="word-spacing" class="w-1/2">Word Spacing</label>
+                            <input type="number" id="word-spacing" class="w-1/2 p-2 bg-gray-800 text-white border border-gray-600 rounded" value="0">
+                            <span>px</span>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <label for="letter-spacing" class="w-1/2">Letter Spacing</label>
+                            <input type="number" id="letter-spacing" class="w-1/2 p-2 bg-gray-800 text-white border border-gray-600 rounded" value="0">
+                            <span>pt</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Margin & Line Options -->
+                <div class="mb-4">
+                    <h3 class="text-lg font-semibold mb-2">Margin & Line Options</h3>
+                    <div class="flex items-center space-x-2">
+                        <label for="paper-margin" class="w-1/2">Paper Margin</label>
+                        <input type="checkbox" id="paper-margin" class="w-1/2 p-2 bg-gray-800 text-white border border-gray-600 rounded" checked>
+                    </div>
+                    <div class="flex items-center space-x-2 mt-2">
+                        <label for="paper-lines" class="w-1/2">Paper Lines</label>
+                        <input type="checkbox" id="paper-lines" class="w-1/2 p-2 bg-gray-800 text-white border border-gray-600 rounded" checked>
+                    </div>
+                    <div class="flex items-center space-x-2 mt-2">
+                        <label for="upload-paper" class="w-1/2">Upload Paper Image</label>
+                        <input type="file" id="upload-paper" class="w-1/2 p-2 bg-gray-800 text-white border border-gray-600 rounded">
+                    </div>
+                </div>
+
+                <!-- Generate Image -->
+                <button id="generate-image-btn" class="mt-4 px-4 py-2 bg-blue-600 text-white rounded">Generate Image</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const previewContainer = document.getElementById("preview-container");
+        const pageTemplate = document.getElementById("page-template");
+        const fontSizeInput = document.getElementById("font-size");
+        const inkColorInput = document.getElementById("ink-color");
+        const handwritingFontInput = document.getElementById("handwriting-font");
+        const effectsInput = document.getElementById("effects");
+        const resolutionInput = document.getElementById("resolution");
+        const generateImageBtn = document.getElementById("generate-image-btn");
+        const pageSizeInput = document.getElementById("page-size");
+        const verticalPositionInput = document.getElementById("vertical-position");
+        const wordSpacingInput = document.getElementById("word-spacing");
+        const letterSpacingInput = document.getElementById("letter-spacing");
+        const paperMarginInput = document.getElementById("paper-margin");
+        const paperLinesInput = document.getElementById("paper-lines");
+        const uploadPaperInput = document.getElementById("upload-paper");
+
+        // Update styles dynamically
+        function updateStyles() {
+            const fontSize = `${fontSizeInput.value}px`;
+            const fontColor = inkColorInput.value;
+            const fontFamily = handwritingFontInput.value;
+            const effects = effectsInput.value;
+            const verticalPosition = `${verticalPositionInput.value}px`;
+            const wordSpacing = `${wordSpacingInput.value}px`;
+            const letterSpacing = `${letterSpacingInput.value}pt`;
+
+            // Apply styles to the text box
+            document.querySelector(".text-box").style.fontSize = fontSize;
+            document.querySelector(".text-box").style.color = fontColor;
+            document.querySelector(".text-box").style.fontFamily = fontFamily;
+            document.querySelector(".text-box").style.textIndent = verticalPosition;
+            document.querySelector(".text-box").style.wordSpacing = wordSpacing;
+            document.querySelector(".text-box").style.letterSpacing = letterSpacing;
+
+            // Apply effects if selected
+            const page = document.querySelector(".a4-page");
+            page.classList.remove("effect-shadow", "effect-scanner");
+            if (effects === "shadow") {
+                page.classList.add("effect-shadow");
+            } else if (effects === "scanner") {
+                page.classList.add("effect-scanner");
+            }
+
+            // Handle paper margin and lines
+            page.style.margin = paperMarginInput.checked ? "20mm" : "0";
+            page.style.backgroundImage = uploadPaperInput.files.length > 0 ? `url(${URL.createObjectURL(uploadPaperInput.files[0])})` : "none";
+        }
+
+        // Event listeners for customization options
+        fontSizeInput.addEventListener("input", updateStyles);
+        inkColorInput.addEventListener("input", updateStyles);
+        handwritingFontInput.addEventListener("change", updateStyles);
+        effectsInput.addEventListener("change", updateStyles);
+        resolutionInput.addEventListener("change", updateStyles);
+        pageSizeInput.addEventListener("change", updateStyles);
+        verticalPositionInput.addEventListener("input", updateStyles);
+        wordSpacingInput.addEventListener("input", updateStyles);
+        letterSpacingInput.addEventListener("input", updateStyles);
+        paperMarginInput.addEventListener("change", updateStyles);
+        paperLinesInput.addEventListener("change", updateStyles);
+        uploadPaperInput.addEventListener("change", updateStyles);
+
+        generateImageBtn.addEventListener("click", () => {
+            html2canvas(pageTemplate).then((canvas) => {
+                const image = canvas.toDataURL();
+                const link = document.createElement("a");
+                link.href = image;
+                link.download = "handwritten_text.png";
+                link.click();
+            });
+        });
+
+        // Initial styles
+        updateStyles();
+    </script>
+    <div class="watermark">@Harshvardhan</div>
+</body>
+</html>
